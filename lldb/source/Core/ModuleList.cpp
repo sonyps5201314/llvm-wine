@@ -564,7 +564,7 @@ ModuleSP ModuleList::FindModule(const UUID &uuid) const {
 void ModuleList::FindTypes(Module *search_first, ConstString name,
                            bool name_is_fully_qualified, size_t max_matches,
                            llvm::DenseSet<SymbolFile *> &searched_symbol_files,
-                           TypeList &types) const {
+                           TypeList &types, bool include_templates) const {
   std::lock_guard<std::recursive_mutex> guard(m_modules_mutex);
 
   collection::const_iterator pos, end = m_modules.end();
@@ -572,7 +572,8 @@ void ModuleList::FindTypes(Module *search_first, ConstString name,
     for (pos = m_modules.begin(); pos != end; ++pos) {
       if (search_first == pos->get()) {
         search_first->FindTypes(name, name_is_fully_qualified, max_matches,
-                                searched_symbol_files, types);
+                                searched_symbol_files, types,
+                                include_templates);
 
         if (types.GetSize() >= max_matches)
           return;
@@ -586,7 +587,7 @@ void ModuleList::FindTypes(Module *search_first, ConstString name,
     // comparison will always be true (valid_module_ptr != nullptr).
     if (search_first != pos->get())
       (*pos)->FindTypes(name, name_is_fully_qualified, max_matches,
-                        searched_symbol_files, types);
+                        searched_symbol_files, types, include_templates);
 
     if (types.GetSize() >= max_matches)
       return;

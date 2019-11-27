@@ -127,6 +127,27 @@ void TypeMap::Dump(Stream *s, bool show_context, lldb::DescriptionLevel level) {
   }
 }
 
+namespace {
+
+bool TypeBasenamesMatch(const std::string &type_basename,
+                        llvm::StringRef match_type_basename,
+                        bool is_instantiation) {
+  if (match_type_basename == type_basename)
+    return true;
+  // If the basenames do not match, let us see if {match_type_basename} could
+  // be an instantiation of {type_basename}.
+  if (is_instantiation)
+    return false;
+  size_t basename_size = type_basename.size();
+  if (match_type_basename.size() <= basename_size)
+    return false;
+  if (match_type_basename[basename_size] != '<')
+    return false;
+  return match_type_basename.take_front(basename_size) == type_basename;
+}
+
+} // namespace
+
 void TypeMap::RemoveMismatchedTypes(llvm::StringRef type_scope,
                                     llvm::StringRef type_basename,
                                     TypeClass type_class, bool exact_match) {
@@ -137,6 +158,8 @@ void TypeMap::RemoveMismatchedTypes(llvm::StringRef type_scope,
   collection matching_types;
 
   iterator pos, end = m_types.end();
+
+  bool is_instantiation = type_basename.find('<') != std::string::npos;
 
   for (pos = m_types.begin(); pos != end; ++pos) {
     Type *the_type = pos->second.get();
@@ -157,7 +180,8 @@ void TypeMap::RemoveMismatchedTypes(llvm::StringRef type_scope,
       if (Type::GetTypeScopeAndBasename(match_type_name, match_type_scope,
                                         match_type_basename,
                                         match_type_class)) {
-        if (match_type_basename == type_basename) {
+        if (TypeBasenamesMatch(type_basename, match_type_basename,
+                               is_instantiation)) {
           const size_t type_scope_size = type_scope.size();
           const size_t match_type_scope_size = match_type_scope.size();
           if (exact_match || (type_scope_size == match_type_scope_size)) {
@@ -189,7 +213,9 @@ void TypeMap::RemoveMismatchedTypes(llvm::StringRef type_scope,
       } else {
         // The type we are currently looking at doesn't exists in a namespace
         // or class, so it only matches if there is no type scope...
-        keep_match = type_scope.empty() && type_basename == match_type_name;
+        keep_match = type_scope.empty() &&
+                     TypeBasenamesMatch(type_basename, match_type_name,
+                                        is_instantiation);
       }
     }
 

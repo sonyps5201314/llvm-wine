@@ -944,19 +944,20 @@ void Module::FindTypes_Impl(
     ConstString name, const CompilerDeclContext &parent_decl_ctx,
     size_t max_matches,
     llvm::DenseSet<lldb_private::SymbolFile *> &searched_symbol_files,
-    TypeMap &types) {
+    TypeMap &types, bool include_templates) {
   if (SymbolFile *symbols = GetSymbolFile())
     symbols->FindTypes(name, parent_decl_ctx, max_matches,
-                       searched_symbol_files, types);
+                       searched_symbol_files, types, include_templates);
 }
 
 void Module::FindTypesInNamespace(ConstString type_name,
                                   const CompilerDeclContext &parent_decl_ctx,
-                                  size_t max_matches, TypeList &type_list) {
+                                  size_t max_matches, TypeList &type_list,
+                                  bool include_templates) {
   TypeMap types_map;
   llvm::DenseSet<lldb_private::SymbolFile *> searched_symbol_files;
   FindTypes_Impl(type_name, parent_decl_ctx, max_matches, searched_symbol_files,
-                 types_map);
+                 types_map, include_templates);
   if (types_map.GetSize()) {
     SymbolContext sc;
     sc.module_sp = shared_from_this();
@@ -977,7 +978,7 @@ lldb::TypeSP Module::FindFirstType(const SymbolContext &sc, ConstString name,
 void Module::FindTypes(
     ConstString name, bool exact_match, size_t max_matches,
     llvm::DenseSet<lldb_private::SymbolFile *> &searched_symbol_files,
-    TypeList &types) {
+    TypeList &types, bool include_templates) {
   const char *type_name_cstr = name.GetCString();
   llvm::StringRef type_scope;
   llvm::StringRef type_basename;
@@ -994,7 +995,7 @@ void Module::FindTypes(
 
     ConstString type_basename_const_str(type_basename);
     FindTypes_Impl(type_basename_const_str, CompilerDeclContext(), max_matches,
-                   searched_symbol_files, typesmap);
+                   searched_symbol_files, typesmap, include_templates);
     if (typesmap.GetSize())
       typesmap.RemoveMismatchedTypes(type_scope, type_basename, type_class,
                                      exact_match);
@@ -1005,12 +1006,13 @@ void Module::FindTypes(
       // The "type_name_cstr" will have been modified if we have a valid type
       // class prefix (like "struct", "class", "union", "typedef" etc).
       FindTypes_Impl(ConstString(type_basename), CompilerDeclContext(),
-                     UINT_MAX, searched_symbol_files, typesmap);
+                     UINT_MAX, searched_symbol_files, typesmap,
+                     include_templates);
       typesmap.RemoveMismatchedTypes(type_scope, type_basename, type_class,
                                      exact_match);
     } else {
       FindTypes_Impl(name, CompilerDeclContext(), UINT_MAX,
-                     searched_symbol_files, typesmap);
+                     searched_symbol_files, typesmap, include_templates);
       if (exact_match) {
         typesmap.RemoveMismatchedTypes(type_scope, name.GetStringRef(),
                                        type_class, exact_match);
