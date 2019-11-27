@@ -2477,7 +2477,7 @@ void SymbolFileDWARF::FindTypes(
     ConstString name, const CompilerDeclContext &parent_decl_ctx,
     uint32_t max_matches,
     llvm::DenseSet<lldb_private::SymbolFile *> &searched_symbol_files,
-    TypeMap &types) {
+    TypeMap &types, bool include_templates) {
   std::lock_guard<std::recursive_mutex> guard(GetModuleMutex());
   // Make sure we haven't already searched this SymbolFile before.
   if (!searched_symbol_files.insert(this).second)
@@ -2579,7 +2579,7 @@ void SymbolFileDWARF::FindTypes(
       if (ModuleSP external_module_sp = pair.second)
         if (SymbolFile *sym_file = external_module_sp->GetSymbolFile())
           sym_file->FindTypes(name, parent_decl_ctx, max_matches,
-                              searched_symbol_files, types);
+                              searched_symbol_files, types, include_templates);
   }
 
   if (log && types.GetSize()) {
