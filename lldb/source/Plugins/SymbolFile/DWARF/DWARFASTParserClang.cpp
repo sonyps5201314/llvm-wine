@@ -3083,7 +3083,10 @@ size_t DWARFASTParserClang::ParseChildParameters(
 
 Type *DWARFASTParserClang::GetTypeForDIE(const DWARFDIE &die) {
   if (die) {
-    SymbolFileDWARF *dwarf = die.GetDWARF();
+    if (die.Tag() == DW_TAG_enumerator) {
+      return die.GetDWARF()->ResolveTypeUID(die.GetParent(), true);
+    }
+
     DWARFAttributes attributes;
     const size_t num_attributes = die.GetAttributes(attributes);
     if (num_attributes > 0) {
@@ -3094,7 +3097,7 @@ Type *DWARFASTParserClang::GetTypeForDIE(const DWARFDIE &die) {
 
         if (attr == DW_AT_type &&
             attributes.ExtractFormValueAtIndex(i, form_value))
-          return dwarf->ResolveTypeUID(form_value.Reference(), true);
+          return die.GetDWARF()->ResolveTypeUID(form_value.Reference(), true);
       }
     }
   }
@@ -3109,6 +3112,7 @@ clang::Decl *DWARFASTParserClang::GetClangDeclForDIE(const DWARFDIE &die) {
   switch (die.Tag()) {
   case DW_TAG_variable:
   case DW_TAG_constant:
+  case DW_TAG_enumerator:
   case DW_TAG_formal_parameter:
   case DW_TAG_imported_declaration:
   case DW_TAG_imported_module:
@@ -3149,6 +3153,28 @@ clang::Decl *DWARFASTParserClang::GetClangDeclForDIE(const DWARFDIE &die) {
       decl = m_ast.CreateVariableDeclaration(
           decl_context, GetOwningClangModule(die), name,
           ClangUtil::GetQualType(type->GetForwardCompilerType()));
+    }
+    break;
+  }
+  case DW_TAG_enumerator: {
+    Type *type = GetTypeForDIE(die);
+    if (type) {
+      CompilerType compiler_type = type->GetForwardCompilerType();
+      clang::QualType qual_type = ClangUtil::GetQualType(compiler_type);
+      const clang::Type *clang_type = qual_type.getTypePtrOrNull();
+      if (clang_type) {
+        clang::EnumDecl *enum_decl =
+            llvm::dyn_cast_or_null<clang::EnumDecl>(clang_type->getAsTagDecl());
+        if (enum_decl) {
+          const char *name = die.GetName();
+          for (clang::EnumConstantDecl *ecd : enum_decl->enumerators()) {
+            if (ecd->getName() == name) {
+              decl = ecd;
+              break;
+            }
+          }
+        }
+      }
     }
     break;
   }
