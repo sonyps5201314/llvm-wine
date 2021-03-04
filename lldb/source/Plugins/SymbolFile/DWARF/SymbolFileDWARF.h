@@ -385,6 +385,10 @@ protected:
 
   lldb_private::Type *ResolveTypeUID(const DIERef &die_ref);
 
+  lldb::VariableSP
+  ParseStaticConstMemberDIE(const lldb_private::SymbolContext &sc,
+                            const DWARFDIE &die);
+
   lldb::VariableSP ParseVariableDIE(const lldb_private::SymbolContext &sc,
                                     const DWARFDIE &die,
                                     const lldb::addr_t func_low_pc);
