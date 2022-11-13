@@ -1386,8 +1386,12 @@ void SymbolFilePDB::GetMangledNamesForFunction(
 
 void SymbolFilePDB::AddSymbols(lldb_private::Symtab &symtab) {
   std::set<lldb::addr_t> sym_addresses;
-  for (size_t i = 0; i < symtab.GetNumSymbols(); i++)
-    sym_addresses.insert(symtab.SymbolAtIndex(i)->GetFileAddress());
+  std::vector<lldb::addr_t> sym_addresses_vec;
+  for (size_t i = 0; i < symtab.GetNumSymbols(); i++) {
+    auto sym = symtab.SymbolAtIndex(i)->GetFileAddress();
+    sym_addresses.insert(sym);
+    sym_addresses_vec.push_back(sym);
+  }
 
   auto results = m_global_scope_up->findAllChildren<PDBSymbolPublicSymbol>();
   if (!results)
@@ -1407,12 +1411,9 @@ void SymbolFilePDB::AddSymbols(lldb_private::Symtab &symtab) {
     auto offset = pub_symbol->getAddressOffset();
 
     auto file_addr = section->GetFileAddress() + offset;
-    if (sym_addresses.find(file_addr) != sym_addresses.end())
-      continue;
-    sym_addresses.insert(file_addr);
 
     auto size = pub_symbol->getLength();
-    symtab.AddSymbol(
+    auto new_sym =
         Symbol(pub_symbol->getSymIndexId(),   // symID
                pub_symbol->getName().c_str(), // name
                pub_symbol->isCode() ? eSymbolTypeCode : eSymbolTypeData, // type
@@ -1426,7 +1427,22 @@ void SymbolFilePDB::AddSymbols(lldb_private::Symtab &symtab) {
                size != 0, // size_is_valid
                false,     // contains_linker_annotations
                0          // flags
-               ));
+        );
+
+    auto it = std::find(sym_addresses_vec.begin(), sym_addresses_vec.end(),
+                        file_addr);
+    if (it != sym_addresses_vec.end()) {
+      auto index = std::distance(sym_addresses_vec.begin(), it);
+      auto pold_sym = symtab.SymbolAtIndex(index);
+      *pold_sym = new_sym;
+      continue;
+    }
+
+    if (sym_addresses.find(file_addr) != sym_addresses.end())
+      continue;
+    sym_addresses.insert(file_addr);
+
+    symtab.AddSymbol(new_sym);
   }
 
   symtab.Finalize();
