@@ -697,7 +697,7 @@ GetRegistersAsJSON(NativeThreadProtocol &thread) {
 
 static llvm::Optional<RegisterValue>
 GetRegisterValue(NativeRegisterContext &reg_ctx, uint32_t generic_regnum) {
-  Log *log(GetLogIfAnyCategoriesSet(LIBLLDB_LOG_THREAD));
+  Log* log = GetLog(LLDBLog::Thread);
   uint32_t reg_num = reg_ctx.ConvertRegisterKindToRegisterNumber(
       eRegisterKindGeneric, generic_regnum);
   const RegisterInfo *const reg_info_p =
@@ -872,7 +872,7 @@ GetJSONThreadsInfo(NativeProcessProtocol &process, bool abridged) {
       if (llvm::Optional<json::Object> registers = GetRegistersAsJSON(thread))
         thread_obj.try_emplace("registers", std::move(*registers));
 
-      json::Array stack_memory = GetStackMemoryAsJSON(process, *thread);
+      json::Array stack_memory = GetStackMemoryAsJSON(process, thread);
       if (!stack_memory.empty())
         thread_obj.try_emplace("memory", std::move(stack_memory));
     }

@@ -1592,9 +1592,9 @@ ClangExpressionDeclMap::AddExpressionVariable(NameSearchContext &context,
           dyn_cast<clang::EnumType>(parser_opaque_type.getTypePtr())) {
     if (!enum_type->isScopedEnumeralType()) {
       for (clang::EnumConstantDecl *ecd : enum_type->getDecl()->enumerators()) {
-        if (ecd->getName() == var->GetUnqualifiedName().GetStringRef()) {
+        if (ecd->getName() == valobj->GetVariable()->GetUnqualifiedName().GetStringRef()) {
           context.AddNamedDecl(ecd);
-          return;
+          return nullptr;
         }
       }
     }

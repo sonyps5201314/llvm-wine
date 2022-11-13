@@ -407,7 +407,7 @@ bool ClangASTSource::FindClassTemplateSpecialization(
   if (!m_target->GetInferClassTemplates())
     return false;
 
-  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_EXPRESSIONS));
+  Log* log = GetLog(LLDBLog::Expressions);
   static unsigned int invocation_id = 0;
   unsigned int current_id = invocation_id++;
 

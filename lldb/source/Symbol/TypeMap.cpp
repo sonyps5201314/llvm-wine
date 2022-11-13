@@ -134,7 +134,7 @@ void TypeMap::Dump(Stream *s, bool show_context, lldb::DescriptionLevel level) {
 
 namespace {
 
-bool TypeBasenamesMatch(const std::string &type_basename,
+bool TypeBasenamesMatch(const llvm::StringRef &type_basename,
                         llvm::StringRef match_type_basename,
                         bool is_instantiation) {
   if (match_type_basename == type_basename)

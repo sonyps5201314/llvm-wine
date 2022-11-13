@@ -1274,7 +1274,7 @@ UUID ProcessElfCore::GetUUIDFromElfData(DataExtractor &elf_data,
 }
 
 void ProcessElfCore::loadModulesFromNtFileNote() {
-  Log *log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_PROCESS));
+  Log* log = GetLog(LLDBLog::Process);
   for (const NT_FILE_Entry &entry : m_nt_file_entries) {
     if (entry.file_ofs != 0 || entry.path.IsEmpty() || entry.start == entry.end)
       continue;

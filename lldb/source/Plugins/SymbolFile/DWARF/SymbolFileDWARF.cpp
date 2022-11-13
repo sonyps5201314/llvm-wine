@@ -3236,7 +3236,7 @@ VariableSP SymbolFileDWARF::ParseStaticConstMemberDIE(
 
   if (type_sp->GetType()) {
     location.UpdateValue(const_value_form.Unsigned(),
-                         type_sp->GetType()->GetByteSize(nullptr).getValueOr(0),
+                         type_sp->GetType()->GetByteSize(nullptr).value_or(0),
                          die.GetCU()->GetAddressByteSize());
   }
 
@@ -3246,10 +3246,11 @@ VariableSP SymbolFileDWARF::ParseStaticConstMemberDIE(
 
   ValueType scope = eValueTypeVariableGlobal;
   Variable::RangeList scope_ranges;
+  DWARFExpressionList location_list(sc.module_sp, location, die.GetCU());
 
   VariableSP var_sp = std::make_shared<Variable>(
       die.GetID(), name, mangled, type_sp, scope, sc.comp_unit, scope_ranges,
-      &decl, location, /*is_external*/ true, /*is_artificial*/ false,
+      &decl, location_list, /*is_external*/ true, /*is_artificial*/ false,
       /*is_static_member*/ true);
   var_sp->SetLocationIsConstantValueData(true);
 
