@@ -134,6 +134,7 @@ public:
       std::vector<lldb_private::ConstString> &mangled_names) override;
 
   void AddSymbols(lldb_private::Symtab &symtab) override;
+  bool FindAndAddSymbol(lldb::addr_t file_addr, lldb_private::Symtab &symtab);
 
   void
   FindTypes(lldb_private::ConstString name,
