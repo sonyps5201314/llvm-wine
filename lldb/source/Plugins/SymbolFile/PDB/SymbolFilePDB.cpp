@@ -1384,6 +1384,49 @@ void SymbolFilePDB::GetMangledNamesForFunction(
     const std::string &scope_qualified_name,
     std::vector<lldb_private::ConstString> &mangled_names) {}
 
+bool SymbolFilePDB::FindAndAddSymbol(lldb::addr_t file_addr,
+                              lldb_private::Symtab &symtab) {
+  auto sym = m_session_up->findSymbolByAddress(file_addr,
+                                               llvm::pdb::PDB_SymType::None);
+  if (!sym) {
+    return false;
+  }
+
+  auto section_list = m_objfile_sp->GetSectionList();
+  if (!section_list)
+    return false;
+
+  auto &raw_sym = sym->getRawSymbol();
+  auto section_id = raw_sym.getAddressSection();
+
+  auto section = section_list->FindSectionByID(section_id);
+  if (!section)
+    return false;
+
+  auto offset = raw_sym.getAddressOffset();
+
+  // auto file_addr_base = section->GetFileAddress() + offset;
+
+  auto size = raw_sym.getLength();
+  auto new_sym =
+      Symbol(sym->getSymIndexId(),                                 // symID
+             sym->getName().c_str(),                               // name
+             raw_sym.isCode() ? eSymbolTypeCode : eSymbolTypeData, // type
+             true,                                                 // external
+             false,                                                // is_debug
+             false,     // is_trampoline
+             false,     // is_artificial
+             section,   // section_sp
+             offset,    // value
+             size,      // size
+             size != 0, // size_is_valid
+             false,     // contains_linker_annotations
+             0          // flags
+      );
+  symtab.AddSymbol(new_sym);
+  return true;
+}
+
 void SymbolFilePDB::AddSymbols(lldb_private::Symtab &symtab) {
   std::set<lldb::addr_t> sym_addresses;
   std::vector<lldb::addr_t> sym_addresses_vec;

@@ -24,6 +24,7 @@
 #include "lldb/Utility/Stream.h"
 #include "lldb/Utility/Timer.h"
 
+#include "Plugins/SymbolFile/PDB/SymbolFilePDB.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/DJB.h"
@@ -1048,6 +1049,8 @@ void Symtab::ForEachSymbolContainingFileAddress(
     addr_t file_addr, std::function<bool(Symbol *)> const &callback) {
   std::lock_guard<std::recursive_mutex> guard(m_mutex);
 
+  bool hasRetried = false;
+Retry:
   if (!m_file_addr_to_index_computed)
     InitAddressIndexes();
 
@@ -1057,6 +1060,19 @@ void Symtab::ForEachSymbolContainingFileAddress(
   const size_t addr_match_count =
       m_file_addr_to_index.FindEntryIndexesThatContain(file_addr,
                                                        all_addr_indexes);
+
+  if (addr_match_count == 0 && !hasRetried) {
+    SymbolFile *sym_file = m_objfile->GetModule()->GetSymbolFile();
+    if (sym_file != nullptr && SymbolFilePDB::classof(sym_file)) {
+      auto pdb_sym_file = static_cast<SymbolFilePDB *>(sym_file);
+      if (pdb_sym_file->CalculateAbilities() != 0) {
+        if (pdb_sym_file->FindAndAddSymbol(file_addr, *this)) {
+          hasRetried = true;
+          goto Retry;
+        }
+      }
+    }
+  }
 
   for (size_t i = 0; i < addr_match_count; ++i) {
     Symbol *symbol = SymbolAtIndex(all_addr_indexes[i]);
