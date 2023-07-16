@@ -141,7 +141,9 @@ protected:
       lldb_private::TypeSystemClang::TemplateParameterInfos
           &template_param_infos);
 
+  public:
   std::string GetCPlusPlusQualifiedName(const DWARFDIE &die);
+  protected:
 
   bool ParseChildMembers(
       const DWARFDIE &die, lldb_private::CompilerType &class_compiler_type,

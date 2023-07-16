@@ -3978,8 +3978,10 @@ QualType Sema::CheckTemplateIdType(TemplateName Name,
       // If we have external source, try to find the specialization
       // in the external source.
       if (auto *Source = Context.getExternalSource()) {
-        if (Source->FindClassTemplateSpecialization(ClassTemplate, Converted))
-          Decl = ClassTemplate->findSpecialization(Converted, InsertPos);
+        if (Source->FindClassTemplateSpecialization(ClassTemplate,
+                                                    CanonicalConverted))
+          Decl =
+              ClassTemplate->findSpecialization(CanonicalConverted, InsertPos);
       }
     }
     if (!Decl) {

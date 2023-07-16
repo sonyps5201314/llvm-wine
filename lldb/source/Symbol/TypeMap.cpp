@@ -20,6 +20,7 @@
 // TODO: Hack because of (internal). In general TypeMap should not
 // depend on specific implementations of SymbolFile (i.e. SymbolFileDWARF).
 #include "Plugins/SymbolFile/DWARF/SymbolFileDWARF.h"
+#include "Plugins/SymbolFile/DWARF/DWARFASTParserClang.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -134,7 +135,7 @@ void TypeMap::Dump(Stream *s, bool show_context, lldb::DescriptionLevel level) {
 
 namespace {
 
-bool TypeBasenamesMatch(const std::string &type_basename,
+bool TypeBasenamesMatch(const llvm::StringRef &type_basename,
                         llvm::StringRef match_type_basename,
                         bool is_instantiation) {
   if (match_type_basename == type_basename)
@@ -186,7 +187,10 @@ void TypeMap::RemoveMismatchedTypes(llvm::StringRef type_scope,
         llvm::dyn_cast<SymbolFileDWARF>(the_type->GetSymbolFile());
     if (symfile) {
       DWARFDIE die = symfile->GetDIE(the_type->GetID());
-      die.GetQualifiedName(qualified_name);
+      DWARFASTParserClang *dwarf_ast_parser =
+          static_cast<DWARFASTParserClang *>(
+              SymbolFileDWARF::GetDWARFParser(*die.GetCU()));
+      qualified_name = dwarf_ast_parser->GetCPlusPlusQualifiedName(die);
 
       if (!qualified_name.empty()) {
         llvm::StringRef qual_name_ref(qualified_name);

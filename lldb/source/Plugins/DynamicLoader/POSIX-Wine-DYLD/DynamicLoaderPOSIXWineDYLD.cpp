@@ -21,6 +21,7 @@
 #include "lldb/Target/SectionLoadList.h"
 #include "lldb/Target/Target.h"
 #include "lldb/Target/ThreadPlanStepInstruction.h"
+#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Log.h"
 #include "lldb/Utility/StringExtractor.h"
 
@@ -146,7 +147,7 @@ llvm::StringRef DynamicLoaderPOSIXWineDYLD::GetPluginName() {
 }
 
 void DynamicLoaderPOSIXWineDYLD::DidAttach() {
-  Log *log(GetLogIfAnyCategoriesSet(LIBLLDB_LOG_DYNAMIC_LOADER));
+  Log *log = GetLog(LLDBLog::DynamicLoader);
 
   DynamicLoaderPOSIXDYLD::DidAttach();
 
@@ -212,7 +213,7 @@ UUID ExtractBuildIdFromSectionHex(llvm::StringRef lines) {
 }
 
 // Tries to extract file-format id from a line of llvm-objdump's output.
-llvm::Optional<llvm::StringRef> TryExtractFileFormat(llvm::StringRef line) {
+std::optional<llvm::StringRef> TryExtractFileFormat(llvm::StringRef line) {
   llvm::StringRef prefix;
   llvm::StringRef file_format;
   std::tie(prefix, file_format) = line.split(':');
@@ -246,7 +247,7 @@ FileFormatAndUUID GetFileFormatAndUUID(PlatformSP platform,
                             std::chrono::seconds(15));
   // If objdump fails, skip this module.
   if (status != 0) {
-    Log *log(GetLogIfAnyCategoriesSet(LIBLLDB_LOG_DYNAMIC_LOADER));
+    Log *log = GetLog(LLDBLog::DynamicLoader);
     LLDB_LOG(log, "Command '{0}' failed with status {1}.", objdump_command,
              status);
     return {};
@@ -261,7 +262,7 @@ FileFormatAndUUID GetFileFormatAndUUID(PlatformSP platform,
   while (!lines.empty()) {
     std::tie(line, lines) = lines.split('\n');
 
-    llvm::Optional<llvm::StringRef> maybe_file_format =
+    std::optional<llvm::StringRef> maybe_file_format =
         TryExtractFileFormat(line);
     if (maybe_file_format) {
       file_format = *maybe_file_format;
@@ -330,7 +331,7 @@ ModuleSP DynamicLoaderPOSIXWineDYLD::TryLoadModule(ModuleList &modules,
 
     // If we could not create the module, just skip it.
     if (!module_sp) {
-      Log *log(GetLogIfAnyCategoriesSet(LIBLLDB_LOG_DYNAMIC_LOADER));
+      Log *log = GetLog(LLDBLog::DynamicLoader);
       LLDB_LOG(log, "Could not create module {0}.", file_spec.GetPath());
       return {};
     }
@@ -345,7 +346,7 @@ ModuleSP DynamicLoaderPOSIXWineDYLD::TryLoadModule(ModuleList &modules,
 }
 
 void DynamicLoaderPOSIXWineDYLD::LoadModulesFromMaps() {
-  Log *log(GetLogIfAnyCategoriesSet(LIBLLDB_LOG_DYNAMIC_LOADER));
+  Log *log = GetLog(LLDBLog::DynamicLoader);
   Target &target = m_process->GetTarget();
   PlatformSP platform = target.GetPlatform();
 
@@ -431,7 +432,7 @@ void DynamicLoaderPOSIXWineDYLD::LoadModulesFromMaps() {
 }
 
 void DynamicLoaderPOSIXWineDYLD::EnsurePEModulePresent(FileSpec &file_spec) {
-  Log *log(GetLogIfAnyCategoriesSet(LIBLLDB_LOG_DYNAMIC_LOADER));
+  Log *log = GetLog(LLDBLog::DynamicLoader);
   Target &target = m_process->GetTarget();
   PlatformSP platform = target.GetPlatform();
 
@@ -462,7 +463,7 @@ void DynamicLoaderPOSIXWineDYLD::EnsurePEModulePresent(FileSpec &file_spec) {
 
   FileSpec cache_spec =
       platform->GetGlobalPlatformProperties().GetModuleCacheDirectory();
-  cache_spec.AppendPathComponent(platform->GetName().AsCString());
+  cache_spec.AppendPathComponent(platform->GetName());
   cache_spec.AppendPathComponent(".sha1cache");
   cache_spec.AppendPathComponent(remote_sha1);
   search_paths.Append(cache_spec);
@@ -538,7 +539,7 @@ DynamicLoaderPOSIXWineDYLD::SetBreakpoint(const FileSpec &module_spec,
       eLanguageTypeUnknown, offset, skip_prologue, internal, hardware);
 
   if (bp_sp->GetNumLocations() == 0) {
-    Log *log(GetLogIfAnyCategoriesSet(LIBLLDB_LOG_DYNAMIC_LOADER));
+    Log *log = GetLog(LLDBLog::DynamicLoader);
     LLDB_LOG(log, "SetBreakpoint failed (symbol {0} in module {1}).", symbol,
              module_spec.GetPath());
   }
@@ -580,7 +581,7 @@ lldb::break_id_t DynamicLoaderPOSIXWineDYLD::SetReturnBreakpoint(
       return_address, internal, hardware);
 
   if (bp_sp->GetNumLocations() == 0) {
-    Log *log(GetLogIfAnyCategoriesSet(LIBLLDB_LOG_DYNAMIC_LOADER));
+    Log *log = GetLog(LLDBLog::DynamicLoader);
     LLDB_LOG(log, "Could not place return breakpoint at address {0:x}.",
              return_address);
   }

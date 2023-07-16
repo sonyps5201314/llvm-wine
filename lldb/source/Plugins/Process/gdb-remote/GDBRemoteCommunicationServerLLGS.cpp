@@ -693,9 +693,9 @@ GetRegistersAsJSON(NativeThreadProtocol &thread) {
   return register_object;
 }
 
-static llvm::Optional<RegisterValue>
+static std::optional<RegisterValue>
 GetRegisterValue(NativeRegisterContext &reg_ctx, uint32_t generic_regnum) {
-  Log *log(GetLogIfAnyCategoriesSet(LIBLLDB_LOG_THREAD));
+  Log* log = GetLog(LLDBLog::Thread);
   uint32_t reg_num = reg_ctx.ConvertRegisterKindToRegisterNumber(
       eRegisterKindGeneric, generic_regnum);
   const RegisterInfo *const reg_info_p =
@@ -747,14 +747,14 @@ static json::Array GetStackMemoryAsJSON(NativeProcessProtocol &process,
   json::Array stack_memory_chunks;
 
   lldb::addr_t sp_value;
-  if (llvm::Optional<RegisterValue> optional_sp_value =
+  if (std::optional<RegisterValue> optional_sp_value =
           GetRegisterValue(reg_ctx, LLDB_REGNUM_GENERIC_SP)) {
     sp_value = optional_sp_value->GetAsUInt64();
   } else {
     return stack_memory_chunks;
   }
   lldb::addr_t fp_value;
-  if (llvm::Optional<RegisterValue> optional_fp_value =
+  if (std::optional<RegisterValue> optional_fp_value =
             GetRegisterValue(reg_ctx, LLDB_REGNUM_GENERIC_FP)) {
     fp_value = optional_fp_value->GetAsUInt64();
   } else {
@@ -870,7 +870,7 @@ GetJSONThreadsInfo(NativeProcessProtocol &process, bool abridged) {
       if (std::optional<json::Object> registers = GetRegistersAsJSON(thread))
         thread_obj.try_emplace("registers", std::move(*registers));
 
-      json::Array stack_memory = GetStackMemoryAsJSON(process, *thread);
+      json::Array stack_memory = GetStackMemoryAsJSON(process, thread);
       if (!stack_memory.empty())
         thread_obj.try_emplace("memory", std::move(stack_memory));
     }

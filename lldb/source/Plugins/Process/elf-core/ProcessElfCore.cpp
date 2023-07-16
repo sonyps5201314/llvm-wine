@@ -1267,14 +1267,14 @@ UUID ProcessElfCore::GetUUIDFromElfData(DataExtractor &elf_data,
       if (build_id_buffer == nullptr)
         break;
 
-      return UUID::fromData(build_id_buffer, note.n_descsz);
+      return UUID(build_id_buffer, note.n_descsz);
     }
   }
   return UUID();
 }
 
 void ProcessElfCore::loadModulesFromNtFileNote() {
-  Log *log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_PROCESS));
+  Log* log = GetLog(LLDBLog::Process);
   for (const NT_FILE_Entry &entry : m_nt_file_entries) {
     if (entry.file_ofs != 0 || entry.path.IsEmpty() || entry.start == entry.end)
       continue;

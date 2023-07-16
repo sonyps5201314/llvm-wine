@@ -10,6 +10,7 @@
 #include "Plugins/Language/ObjC/ObjCLanguage.h"
 #include "Plugins/SymbolFile/DWARF/DWARFDebugInfo.h"
 #include "Plugins/SymbolFile/DWARF/DWARFDeclContext.h"
+#include "Plugins/SymbolFile/DWARF/DWARFASTParserClang.h"
 #include "Plugins/SymbolFile/DWARF/LogChannelDWARF.h"
 #include "Plugins/SymbolFile/DWARF/SymbolFileDWARFDwo.h"
 #include "lldb/Core/DataFileCache.h"
@@ -388,7 +389,11 @@ void ManualDWARFIndex::IndexUnitImpl(DWARFUnit &unit,
           std::string qualified_name;
           if (parent_decl_context.Tag() != DW_TAG_compile_unit &&
               parent_decl_context.Tag() != DW_TAG_partial_unit)
-            parent_decl_context.GetQualifiedName(qualified_name);
+            qualified_name =
+                (static_cast<DWARFASTParserClang *>(
+                     SymbolFileDWARF::GetDWARFParser(
+                         *parent_decl_context.GetCU())))
+                    ->GetCPlusPlusQualifiedName(parent_decl_context);
           qualified_name += "::";
           qualified_name += std::string(name, generic_length);
           set.generic_types.Insert(ConstString(qualified_name.c_str()), ref);
@@ -401,7 +406,7 @@ void ManualDWARFIndex::IndexUnitImpl(DWARFUnit &unit,
         for (const DWARFDebugInfoEntry *value = die.GetFirstChild();
              value != nullptr; value = value->GetSibling()) {
           if (value->Tag() == DW_TAG_enumerator) {
-            DIERef value_ref = DWARFDIE(&unit, value).GetDIERef().getValue();
+            DIERef value_ref = *DWARFDIE(&unit, value).GetDIERef();
             set.globals.Insert(ConstString(value->GetName(&unit)), value_ref);
           }
         }
